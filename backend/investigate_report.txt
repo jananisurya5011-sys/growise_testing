@@ -1,0 +1,58 @@
+=== STEP 1: Flow Traced ===
+File selection -> ObjectURL -> rendering -> button click -> tfModelLoader.predict
+
+--- FIRST CLICK (Simulated Immediate Click) ---
+
+=== STEP 2: Verify Image Valid (First Click) ===
+image.complete: false
+image.naturalWidth: 0
+image.naturalHeight: 0
+image.width: 0
+image.height: 0
+Error in fromPixels: Failed to execute 'getImageData' on 'CanvasRenderingContext2D': The source width is 0.
+
+=== STEP 3: Tensor after fromPixels (First Click) ===
+shape: 0,0,3
+dtype: float32
+
+=== STEP 4: Tensor after resize (First Click) ===
+shape: 224,224,3
+minimum: 0
+maximum: 0
+mean: 0
+
+=== STEP 5: Tensor after normalization (First Click) ===
+minimum: 0
+maximum: 0
+mean: 0
+
+--- SECOND CLICK (Simulated After Load) ---
+
+=== STEP 2: Verify Image Valid (Second Click) ===
+image.complete: true
+image.naturalWidth: 270
+image.naturalHeight: 148
+image.width: 270
+image.height: 148
+
+=== STEP 3: Tensor after fromPixels (Second Click) ===
+shape: 148,270,3
+dtype: int32
+minimum: 0
+maximum: 255
+mean: 116.66032409667969
+first 20: 250,254,253,253,255,254,253,255,251,245,248,238,222,223,209,191,191,173,169,170
+
+=== STEP 4: Tensor after resize (Second Click) ===
+shape: 224,224,3
+minimum: 0
+maximum: 255
+mean: 116.72051239013672
+
+=== STEP 5: Tensor after normalization (Second Click) ===
+minimum: 0
+maximum: 1
+mean: 0.45772749185562134
+
+=== STEP 6: Backend ===
+tf.getBackend(): webgl

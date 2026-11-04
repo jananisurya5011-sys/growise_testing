@@ -1,0 +1,47 @@
+
+============================
+REQUEST: REQ_1_FIRST_CLICK
+============================
+[0.00][REQ_1_FIRST_CLICK] File selected
+[0.70][REQ_1_FIRST_CLICK] Blob URL created
+[0.90][REQ_1_FIRST_CLICK] Image component mounts
+[0.90][REQ_1_FIRST_CLICK] Image decode starts
+[3.90][REQ_1_FIRST_CLICK] Image decode ends
+[3.90][REQ_1_FIRST_CLICK] image.complete: true
+[4.00][REQ_1_FIRST_CLICK] image.naturalWidth: 270
+[4.00][REQ_1_FIRST_CLICK] createImageBitmap() start
+[6.00][REQ_1_FIRST_CLICK] createImageBitmap() end. Width: 270
+[7.40][REQ_1_FIRST_CLICK] Canvas drawImage()
+[99.00][REQ_1_FIRST_CLICK] Canvas first 10 pixels: 250,255,253,255,253,255,253,255,249,252
+[99.00][REQ_1_FIRST_CLICK] Canvas checksum: 30355245
+[99.00][REQ_1_FIRST_CLICK] fromPixels(img) starts
+[132.30][REQ_1_FIRST_CLICK] fromPixels(img) ends. Mean: 116.66032409667969
+[381.00][REQ_1_FIRST_CLICK] fromPixels(bitmap) starts
+[382.00][REQ_1_FIRST_CLICK] fromPixels(bitmap) ends. Mean: 116.67264556884766
+
+============================
+REQUEST: REQ_2_SECOND_CLICK
+============================
+[0.00][REQ_2_SECOND_CLICK] File selected
+[0.40][REQ_2_SECOND_CLICK] Blob URL created
+[0.60][REQ_2_SECOND_CLICK] Image component mounts
+[0.60][REQ_2_SECOND_CLICK] Image decode starts
+[3.00][REQ_2_SECOND_CLICK] Image decode ends
+[3.00][REQ_2_SECOND_CLICK] image.complete: true
+[3.00][REQ_2_SECOND_CLICK] image.naturalWidth: 270
+[3.00][REQ_2_SECOND_CLICK] createImageBitmap() start
+[4.40][REQ_2_SECOND_CLICK] createImageBitmap() end. Width: 270
+[4.60][REQ_2_SECOND_CLICK] Canvas drawImage()
+[28.60][REQ_2_SECOND_CLICK] Canvas first 10 pixels: 250,255,253,255,253,255,253,255,249,252
+[28.60][REQ_2_SECOND_CLICK] Canvas checksum: 30355245
+[28.60][REQ_2_SECOND_CLICK] fromPixels(img) starts
+[29.00][REQ_2_SECOND_CLICK] fromPixels(img) ends. Mean: 116.66032409667969
+[34.70][REQ_2_SECOND_CLICK] fromPixels(bitmap) starts
+[35.10][REQ_2_SECOND_CLICK] fromPixels(bitmap) ends. Mean: 116.67264556884766
+
+
+=== COMPARISON TABLE ===
+Metric | FIRST CLICK | SECOND CLICK | MATCH?
+Canvas Checksum | 30355245 | 30355245 | true
+fromPixels(DOM) Mean | 116.66032409667969 | 116.66032409667969 | true
+fromPixels(Bitmap) Mean | 116.67264556884766 | 116.67264556884766 | true

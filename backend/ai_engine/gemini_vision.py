@@ -100,6 +100,11 @@ def analyze_crop_image(image_file, language="en"):
         
     except errors.ClientError as e:
         traceback.print_exc()
+        if "API_KEY" in str(e) or getattr(e, "code", None) in (401, 403):
+            return {
+                "success": False,
+                "error": "The Gemini API key is missing or invalid. Please check GEMINI_API_KEY in backend/.env."
+            }
         return {
             "success": False,
             "error": "AI service temporarily unavailable. Please try again later."

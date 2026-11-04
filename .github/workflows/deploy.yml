@@ -1,0 +1,292 @@
+name: GroWise CI/CD Quality & Deployment Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # ============================================================
+  # 1. SELENIUM WEB TESTING (PARALLEL JOB)
+  # ============================================================
+  selenium-tests:
+    name: Selenium Web Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Selenium Testing Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/selenium/requirements.txt
+
+      - name: Run Selenium Web Automation Suite (351+ Unique Tests)
+        env:
+          BASE_URL: "http://localhost:5173"
+          HEADLESS: "true"
+          CI_ENV: "GitHub Actions - Ubuntu Headless Chrome"
+        run: |
+          python tests/selenium/test_selenium.py
+
+      - name: Upload Selenium Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-report
+          path: |
+            test-cases/selenium_test_cases.xlsx
+            reports/selenium/
+          retention-days: 30
+
+  # ============================================================
+  # 2. APPIUM MOBILE TESTING (PARALLEL JOB)
+  # ============================================================
+  appium-tests:
+    name: Appium Mobile Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Verify Android Mobile Application Project
+        run: |
+          echo "Verifying Android mobile application configuration..."
+          test -f frontend/app/build.gradle.kts || exit 1
+          test -f frontend/app/src/main/AndroidManifest.xml || exit 1
+
+      - name: Install Appium Testing Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/appium/requirements.txt
+
+      - name: Run Appium Mobile Automation Suite (351+ Unique Tests)
+        env:
+          CI_MOCK_APPIUM: "true"
+          CI_ENV: "GitHub Actions - Android Emulation Runner"
+        run: |
+          python tests/appium/test_appium.py
+
+      - name: Upload Appium Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-report
+          path: |
+            test-cases/appium_test_cases.xlsx
+            reports/appium/
+          retention-days: 30
+
+  # ============================================================
+  # 3. LOAD TESTING - WEB ONLY (PARALLEL JOB)
+  # ============================================================
+  load-tests:
+    name: Load Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Load Testing Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/load/requirements.txt
+
+      - name: Run Web Load & Performance Suite (350 Unique Scenarios)
+        env:
+          CI_ENV: "GitHub Actions - Locust Performance Benchmark"
+        run: |
+          python tests/load/test_load.py
+
+      - name: Upload Load Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-report
+          path: |
+            test-cases/load_test_cases.xlsx
+            reports/load-testing/
+          retention-days: 30
+
+  # ============================================================
+  # 4. DAST SECURITY TESTING - WEB ONLY (PARALLEL JOB)
+  # ============================================================
+  dast-security-tests:
+    name: DAST Security Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install DAST Security Testing Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/dast/requirements.txt
+
+      - name: Run DAST Security Audit Suite (350 Unique Security Checks)
+        env:
+          CI_ENV: "GitHub Actions - OWASP ZAP & DAST Auditor"
+        run: |
+          python tests/dast/test_dast.py
+
+      - name: Upload DAST Security Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-report
+          path: |
+            test-cases/dast_test_cases.xlsx
+            reports/dast-security/
+          retention-days: 30
+
+  # ============================================================
+  # 5. BUNDLE REPORTS (GATES DEPLOYMENT)
+  # ============================================================
+  bundle-reports:
+    name: Bundle Reports
+    runs-on: ubuntu-latest
+    needs:
+      - selenium-tests
+      - appium-tests
+      - load-tests
+      - dast-security-tests
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Reporting Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install openpyxl
+
+      - name: Download Selenium Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: selenium-report
+          path: downloaded-reports/selenium
+
+      - name: Download Appium Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: appium-report
+          path: downloaded-reports/appium
+
+      - name: Download Load Testing Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: load-report
+          path: downloaded-reports/load-testing
+
+      - name: Download DAST Security Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dast-report
+          path: downloaded-reports/dast-security
+
+      - name: Consolidate & Execute Bundle Reports
+        run: |
+          mkdir -p reports/selenium reports/appium reports/load-testing reports/dast-security test-cases
+          
+          # Copy Excel test case files to test-cases/
+          find downloaded-reports/ -name "*_test_cases.xlsx" -exec cp {} test-cases/ \;
+          
+          # Run master bundle aggregation
+          python tests/bundle_reports.py
+
+      - name: Upload Master Unified Reports Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundled-reports
+          path: |
+            reports/
+            test-cases/
+          retention-days: 90
+
+  # ============================================================
+  # 6. DEPLOY WEB ONLY (GITHUB PAGES)
+  # ============================================================
+  deploy:
+    name: Deploy Web Only
+    runs-on: ubuntu-latest
+    needs:
+      - bundle-reports
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install Web Dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Build Web Application for Production (Vite)
+        working-directory: website
+        run: npm run build -- --base ./
+
+      - name: Setup SPA 404 Fallback Routing for GitHub Pages
+        run: |
+          cp website/dist/index.html website/dist/404.html
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "website/dist"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

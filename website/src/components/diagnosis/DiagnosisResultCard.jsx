@@ -3,6 +3,7 @@ import { Save, AlertCircle, Droplets, Leaf, Shield, CheckCircle2, ChevronRight, 
 import gsap from 'gsap';
 import DiseaseBadge from './DiseaseBadge';
 import ConfidenceBadge from './ConfidenceBadge';
+import { getCropFromLabel, isHealthyLabel } from '../../utils/cropLabels';
 
 const SectionHeader = ({ icon, title, color = "#22c55e" }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -56,8 +57,10 @@ const DiagnosisResultCard = ({
 
   // Derive isAI either from explicit diagnosisType prop or from the result object itself (if populated from history)
   const isAI = diagnosisType === 'ai' || result.diagnosisType === 'ai';
-  const isHealthy = isAI ? (result.healthStatus?.toLowerCase() === 'healthy') : (result.disease === 'Healthy');
+  const isHealthy = isAI ? (result.healthStatus?.toLowerCase() === 'healthy') : isHealthyLabel(result.disease);
   const isHistoryMode = mode === 'history';
+  // Older offline records were saved with cropName "Unknown", so fall back to the crop in the label
+  const offlineCrop = !isAI ? ((result.cropName && result.cropName !== 'Unknown') ? result.cropName : getCropFromLabel(result.disease)) : null;
 
   return (
     <div 
@@ -78,6 +81,11 @@ const DiagnosisResultCard = ({
             {isAI && result.cropName && (
               <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                 {result.cropName} {result.species ? `(${result.species})` : ''}
+              </p>
+            )}
+            {offlineCrop && (
+              <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                {offlineCrop}
               </p>
             )}
             <DiseaseBadge disease={result.disease} isHealthy={isHealthy} />

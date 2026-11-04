@@ -71,7 +71,7 @@ def predict_image(image_path):
     try:
         # Load and resize
         img = Image.open(image_path).convert('RGB')
-        img = img.resize(target_size)
+        img = img.resize(target_size, resample=Image.Resampling.NEAREST)
         
         # Convert to numpy array and ensure float32
         img_array = np.array(img, dtype=np.float32)

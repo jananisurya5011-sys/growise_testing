@@ -4,6 +4,7 @@ import apiClient from '../../utils/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeft, AlertTriangle, CheckCircle } from 'lucide-react';
 import tfModelLoader from '../../utils/tfModelLoader';
+import { normalizeLabel, getCropFromLabel } from '../../utils/cropLabels';
 
 import DiagnosisUpload from '../diagnosis/DiagnosisUpload';
 import DiagnosisLoader from '../diagnosis/DiagnosisLoader';
@@ -22,53 +23,88 @@ const OfflineCropDoctor = () => {
   const [errorAlert, setErrorAlert] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [metadata, setMetadata] = useState({});
+  const [modelReady, setModelReady] = useState(false);
 
   useEffect(() => {
-    // Preload the TFJS model and metadata to ensure instant offline inference later
-    tfModelLoader.initialize();
+    let mounted = true;
+    const initModel = async () => {
+      try {
+        await tfModelLoader.initialize();
+        if (mounted) setModelReady(true);
+      } catch (err) {
+        console.error("Failed to initialize model", err);
+      }
+    };
+    initModel();
+
     fetch('/ml/disease_metadata.json')
       .then(res => res.json())
-      .then(data => setMetadata(data))
+      .then(data => { if (mounted) setMetadata(data); })
       .catch(err => console.error("Failed to load metadata", err));
+      
+    return () => { mounted = false; };
   }, []);
+
+  const reqCounter = React.useRef(0);
 
   const handleFileSelect = (file) => {
     setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
     setResult(null);
     setErrorAlert(null);
   };
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleDiagnose = async () => {
-    const imageElement = document.getElementById('diagnosis-upload-preview');
-    if (!selectedFile || !imageElement) return;
+    reqCounter.current += 1;
+    const currentReqId = `REQ_${reqCounter.current}`;
+    
+    if (!selectedFile || !modelReady) {
+      return;
+    }
     
     setIsAnalyzing(true);
     setErrorAlert(null);
     setResult(null);
     
     try {
-      // 100% Offline Prediction
       const startTime = Date.now();
-      const prediction = await tfModelLoader.predict(imageElement);
+      const prediction = await tfModelLoader.predict(selectedFile, currentReqId);
       const predictionTime = Date.now() - startTime;
       
-      if (prediction.disease === 'Background_Noise') {
-        setErrorAlert("Not a recognizable plant or crop leaf. Please capture a clear leaf image.");
-      } else if (prediction.confidence < 0.45) {
-        setErrorAlert("Crop not recognized clearly. Please capture a clearer leaf image.");
+      // Class 38 ("Unknown") is the model's non-plant class; low confidence or few leaf-coloured pixels also mean no leaf
+      if (prediction.disease === 'Unknown' || prediction.confidence < 0.6 || prediction.leafRatio < 0.15) {
+        setErrorAlert("This doesn't look like a plant leaf. Please upload a clear photo of a single leaf.");
       } else {
-        const meta = metadata[prediction.disease] || {
+        // Match metadata keys to model labels regardless of underscores/punctuation
+        const metaKey = Object.keys(metadata).find(k => normalizeLabel(k) === normalizeLabel(prediction.disease));
+        const meta = metadata[metaKey] || {
           symptoms: ["Information unavailable"],
           causes: ["Information unavailable"],
-          organicTreatment: ["Maintain regular schedule"],
-          chemicalTreatment: ["Maintain regular schedule"],
-          prevention: ["Maintain regular schedule"]
+          organicTreatment: ["Consult your local agriculture officer"],
+          chemicalTreatment: ["Consult your local agriculture officer"],
+          prevention: ["Information unavailable"]
         };
-        
-        // Structure the result to match the expected format for DiagnosisResultCard (offline mode)
+
+        const formattedDisease = prediction.disease.replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+
         setResult({
-          disease: prediction.disease.replace(/_/g, ' ').replace(/  /g, ' '),
+          disease: formattedDisease,
+          cropName: getCropFromLabel(prediction.disease),
           confidence: prediction.confidence,
           remedy: meta.organicTreatment.join(', ') + '\n\nChemical: ' + meta.chemicalTreatment.join(', '),
           predictionTime,
@@ -97,6 +133,7 @@ const OfflineCropDoctor = () => {
     
     // Store additional metadata
     const details = {
+      cropName: result.cropName || 'Unknown',
       predictionTimeMs: result.predictionTime,
       modelVersion: result.modelVersion
     };
@@ -152,8 +189,8 @@ const OfflineCropDoctor = () => {
           <DiagnosisLoader 
             isAnalyzing={isAnalyzing}
             onClick={handleDiagnose}
-            disabled={!selectedFile}
-            text="Analyze Leaf Offline"
+            disabled={!selectedFile || isAnalyzing || !modelReady}
+            text={!modelReady ? "Loading AI Model..." : "Analyze Leaf Offline"}
             analyzingText="Running Core Accelerator..."
           />
 

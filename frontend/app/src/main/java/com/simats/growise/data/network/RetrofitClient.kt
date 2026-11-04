@@ -8,7 +8,9 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
     // Default dynamic target IP binding for local deployment environment
     // FIX: Removed 'private' so it can be accessed dynamically by FProfile.kt
-    const val BASE_URL = "http://10.162.43.73:5000/"
+    // Previous: const val BASE_URL = "http://10.162.43.73:5000/"
+    // Real phone on the same WiFi: laptop's IPv4 address (from ipconfig). For the emulator use 10.0.2.2
+    const val BASE_URL = "http://192.168.1.9:5000/"
 
     // FIX: Added OkHttpClient to bypass the default 10-second timeout restriction
     private val okHttpClient = OkHttpClient.Builder()

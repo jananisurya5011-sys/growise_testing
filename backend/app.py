@@ -121,10 +121,49 @@ def get_weather():
                     "latitude": lat,
                     "longitude": lon,
                     "temp": data.get("main", {}).get("temp"),
-                    "condition": data.get("weather", [{}])[0].get("main", "Clear")
+                    "condition": data.get("weather", [{}])[0].get("main", "Clear"),
+                    "description": data.get("weather", [{}])[0].get("main", "Clear")
                 })
         except Exception as e:
             print("Weather Proxy Error:", e)
+
+    # Keyless fallback via Open-Meteo if no API key or OpenWeather fails
+    if lat and lon:
+        try:
+            url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code"
+            resp = requests.get(url, timeout=10)
+            if resp.status_code == 200:
+                current = resp.json().get("current", {})
+                code = current.get("weather_code", 0)
+                if code == 0:
+                    condition = "Clear"
+                elif code <= 3:
+                    condition = "Cloudy"
+                elif code <= 48:
+                    condition = "Fog"
+                elif code <= 57:
+                    condition = "Drizzle"
+                elif code <= 67 or 80 <= code <= 82:
+                    condition = "Rain"
+                elif code <= 77 or 85 <= code <= 86:
+                    condition = "Snow"
+                else:
+                    condition = "Thunderstorm"
+                return jsonify({
+                    "success": True,
+                    "location": location_name,
+                    "address": full_address,
+                    "latitude": lat,
+                    "longitude": lon,
+                    "temp": current.get("temperature_2m"),
+                    "condition": condition,
+                    "description": condition,
+                    "humidity": current.get("relative_humidity_2m"),
+                    "wind_speed": current.get("wind_speed_10m"),
+                    "feels_like": current.get("apparent_temperature")
+                })
+        except Exception as e:
+            print("Open-Meteo Weather Error:", e)
 
     # Fallback Mock if no API key or fetch fails
     return jsonify({
@@ -134,7 +173,8 @@ def get_weather():
         "latitude": lat,
         "longitude": lon,
         "temp": 28.5,
-        "condition": "Sunny"
+        "condition": "Sunny",
+        "description": "Sunny"
     }), 200
 
 if __name__ == '__main__':

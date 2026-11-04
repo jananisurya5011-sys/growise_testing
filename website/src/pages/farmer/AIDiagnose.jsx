@@ -54,7 +54,14 @@ const FarmerAIDiagnose = () => {
       }
     } catch (error) {
       console.error(error);
-      setErrorAlert('Network error: Failed to reach the Gemini Vision engine.');
+      if (error.response?.data?.error) {
+        // Backend replied with a reason (e.g. not a plant, AI key problem)
+        setErrorAlert(error.response.data.error);
+      } else if (error.response) {
+        setErrorAlert(`Server error (${error.response.status}). Please try again in a moment.`);
+      } else {
+        setErrorAlert('Cannot reach the GroWise server. Please make sure the backend is running and try again.');
+      }
     } finally {
       setIsAnalyzing(false);
     }

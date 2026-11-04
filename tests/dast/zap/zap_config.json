@@ -1,0 +1,19 @@
+{
+  "target": "http://localhost:5173",
+  "api_target": "http://127.0.0.1:5000",
+  "scanner": "OWASP ZAP Dynamic Application Security Testing",
+  "active_scan": true,
+  "spider_depth": 3,
+  "max_scan_duration": 60,
+  "alert_threshold": "HIGH",
+  "rules": {
+    "sql_injection": "HIGH",
+    "xss_reflected": "HIGH",
+    "xss_stored": "HIGH",
+    "path_traversal": "HIGH",
+    "security_headers": "MEDIUM",
+    "cors_misconfiguration": "MEDIUM",
+    "info_leakage": "MEDIUM"
+  }
+}
+

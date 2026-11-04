@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { Image as ImageIcon, Trash2 } from 'lucide-react';
 import { getDiagnosisImageUrl } from '../../utils/diagnosisImage';
 import { confirmDialog } from '../common/ConfirmationDialog';
-
+import { getCropFromLabel } from '../../utils/cropLabels';
 const DiagnosisHistoryCard = ({ item, onClick, onDelete }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   // item can be either Offline or AI diagnosis
   const isAI = item.diagnosisType === 'ai';
-  
+  // Older offline records were saved with cropName "Unknown", so fall back to the crop in the label
+  const cropName = (!isAI && (!item.cropName || item.cropName === 'Unknown'))
+    ? getCropFromLabel(item.disease || '') || item.cropName
+    : item.cropName;
+
   const imgUrl = getDiagnosisImageUrl(item.imagePath);
 
   const handleDelete = async (e) => {
@@ -72,9 +76,9 @@ const DiagnosisHistoryCard = ({ item, onClick, onDelete }) => {
         )}
       </div>
       
-      {item.cropName && (
+      {cropName && (
         <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#666', fontWeight: 600 }}>
-          Crop: {item.cropName}
+          Crop: {cropName}
         </p>
       )}
 
@@ -97,8 +101,7 @@ const DiagnosisHistoryCard = ({ item, onClick, onDelete }) => {
       
       <p style={{ margin: 0, fontSize: '13px', color: '#555', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
         {item.details?.summary || item.details?.cause || item.remedy || 'Maintain standard care.'}
-      </p>
-    </div>
+      </p>    </div>
   );
 };
 
