@@ -306,7 +306,7 @@ jobs:
 
       - name: Install Web Application Dependencies
         working-directory: website
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build Web Application for Production (Vite)
         working-directory: website
